@@ -1,5 +1,7 @@
 # Smart Speaker Assistant
 
+[English](README.md) | [简体中文](README.zh-CN.md)
+
 A local voice assistant for desktop environments. It listens for a wake word, records speech from the microphone, transcribes it locally, calls a Qwen-compatible LLM API, optionally uses Qwen web search, and returns spoken or printed responses.
 
 The default wake word is `Monster`.
