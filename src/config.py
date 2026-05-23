@@ -52,7 +52,11 @@ class Settings:
     force_web_search: bool = True
     search_strategy: str = "turbo"
     answer_wait_notice_seconds: int = 5
-    wake_word: str = "你好小智"
+    wake_word: str = "Monster"
+    wake_language: str = "en"
+    wake_max_seconds: int = 3
+    wake_silence_seconds: int = 1
+    wake_rms_threshold: int = 500
     system_prompt: str = "你是一个简洁、可靠的中文语音助手。回答要适合被朗读。"
     enable_tts: bool = False
     language: str = "zh"
@@ -90,6 +94,12 @@ class Settings:
                 "ANSWER_WAIT_NOTICE_SECONDS", cls.answer_wait_notice_seconds
             ),
             wake_word=os.getenv("WAKE_WORD", cls.wake_word),
+            wake_language=os.getenv("WAKE_LANGUAGE", cls.wake_language),
+            wake_max_seconds=_int_from_env("WAKE_MAX_SECONDS", cls.wake_max_seconds),
+            wake_silence_seconds=_int_from_env(
+                "WAKE_SILENCE_SECONDS", cls.wake_silence_seconds
+            ),
+            wake_rms_threshold=_int_from_env("WAKE_RMS_THRESHOLD", cls.wake_rms_threshold),
             system_prompt=os.getenv("SYSTEM_PROMPT", cls.system_prompt),
             enable_tts=_bool_from_env("ENABLE_TTS", False),
             language=os.getenv("LANGUAGE", cls.language),

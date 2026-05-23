@@ -92,6 +92,8 @@ smart-speaker-assistant/
     llm_client.py
     text_to_speech.py
     voice_main.py
+    wake_word.py
+    wake_main.py
     conversation.py
   tests/
 ```
@@ -108,6 +110,7 @@ smart-speaker-assistant/
 - 可选使用 `pyttsx3` 朗读回答。
 - 支持 `/reset` 清空上下文，`/exit` 退出程序。
 - 支持按回车录音，把麦克风语音转成文字后继续调用 Qwen。
+- 支持常驻监听唤醒词 `Monster`，唤醒后进入语音对话。
 
 这一步先打通核心对话链路。后续只需要把命令行输入替换成“麦克风录音 + 语音转文字”，把手动唤醒替换成“本地唤醒词检测”。
 
@@ -146,11 +149,21 @@ python -m src.main
 pip install -r requirements.txt
 ```
 
-运行语音版原型：
+运行常驻唤醒版，也是日常使用推荐入口：
+
+```bash
+python -m src.wake_main
+```
+
+常驻唤醒版启动后会持续监听短语音段。你说 `Monster` 后，它会回应“我在，请说”，然后录制你的问题并调用 Qwen。这个入口不需要按回车开始录音。
+
+手动录音调试入口：
 
 ```bash
 python -m src.voice_main
 ```
+
+这个入口需要按回车开始录音，适合测试麦克风、转写和大模型调用链路。
 
 检查当前环境是否能看到麦克风：
 
@@ -177,6 +190,7 @@ python -m src.voice_main --list-audio-devices
 - 第一次运行可能会下载 Whisper 模型，需要等待一段时间。
 - 如果系统拒绝麦克风访问，需要先给终端或 Python 开麦克风权限。
 - 在 WSLg 环境中，程序会优先使用 PulseAudio 的 `parecord` 从 Windows 麦克风录音。
+- 常驻唤醒版也使用 PulseAudio/PortAudio 的共享录音流，不会主动独占麦克风；其他软件是否能同时使用麦克风还取决于 Windows、驱动和音频服务本身。
 - 如果 WSL 里显示没有麦克风设备，先检查 Windows 设置里的麦克风权限，以及 `/mnt/wslg/PulseServer` 是否存在。
 
 如果想开启本地语音朗读：
@@ -240,7 +254,11 @@ FORCE_WEB_SEARCH=true
 SEARCH_STRATEGY=turbo
 ANSWER_WAIT_NOTICE_SECONDS=5
 
-WAKE_WORD=你好小智
+WAKE_WORD=Monster
+WAKE_LANGUAGE=en
+WAKE_MAX_SECONDS=3
+WAKE_SILENCE_SECONDS=1
+WAKE_RMS_THRESHOLD=500
 LANGUAGE=zh
 SAMPLE_RATE=16000
 MAX_RECORD_SECONDS=12
