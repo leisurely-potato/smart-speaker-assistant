@@ -1,0 +1,1 @@
+"""Smart speaker assistant package."""
