@@ -26,6 +26,7 @@ class Conversation:
         user_text: str,
         wait_notice_seconds: int = 5,
         on_wait_notice: Callable[[], None] | None = None,
+        speak: bool = True,
     ) -> str:
         self.history.append({"role": "user", "content": user_text})
         messages: list[Message] = [{"role": "system", "content": self.system_prompt}, *self.history]
@@ -43,7 +44,11 @@ class Conversation:
                 timer.cancel()
 
         self.history.append({"role": "assistant", "content": answer})
-        self.tts.say(answer)
+        if speak:
+            try:
+                self.tts.say(answer)
+            except RuntimeError as exc:
+                print(f"语音播报失败：{exc}")
         return answer
 
     def reset(self) -> None:

@@ -14,7 +14,7 @@ The default wake word is `Monster`.
 - Qwen Cloud / DashScope integration through an OpenAI-compatible chat API.
 - Optional Qwen web search for weather, news, market data, and other live information.
 - Silence detection for automatic end-of-speech handling.
-- Configurable model, wake word, search behavior, recording timeout, and TTS.
+- Configurable model, wake word, search behavior, recording timeout, and speaker output.
 - Manual CLI and manual voice modes for debugging.
 
 ## Architecture
@@ -26,7 +26,7 @@ Microphone
   -> faster-whisper transcription
   -> Qwen-compatible LLM client
   -> Text response
-  -> Optional text-to-speech
+  -> Text-to-speech playback
 ```
 
 Key modules:
@@ -111,6 +111,8 @@ Expected startup output:
 ```
 
 Say `Monster` to wake the assistant. After it responds with “我在，请说。”, ask your question normally. The recorder stops automatically after sustained silence and then sends the transcribed request to Qwen.
+
+During speech playback, say `停一下 Monster` to interrupt the current response and ask a follow-up question.
 
 Manual voice mode:
 
@@ -197,21 +199,57 @@ Guidance:
 - Increase `MAX_RECORD_SECONDS` for longer questions.
 - Change `STT_MODEL` to a larger Whisper model for better transcription accuracy, at the cost of more CPU and memory.
 
+## Interruption
+
+Speech playback can be interrupted with a dedicated phrase:
+
+```env
+ENABLE_INTERRUPTION=true
+INTERRUPT_PHRASE=停一下 Monster
+INTERRUPT_LANGUAGE=zh
+INTERRUPT_MAX_SECONDS=3
+INTERRUPT_SILENCE_SECONDS=1
+INTERRUPT_RMS_THRESHOLD=500
+INTERRUPT_TTS_SETTLE_SECONDS=1.0
+INTERRUPT_PROMPT_RECORD_DELAY_SECONDS=0.8
+```
+
+The interruption listener is active only while the assistant is speaking. When the phrase is detected, the current TTS process is stopped, the assistant prompts for the next request, and a new recording starts.
+
+`INTERRUPT_TTS_SETTLE_SECONDS` gives the speaker output buffer time to clear after an interrupted answer. `INTERRUPT_PROMPT_RECORD_DELAY_SECONDS` waits briefly after the “please speak” prompt before starting the next recording, which prevents the assistant from recording the tail of its own voice.
+
+Interrupted follow-up turns use the same response flow as the first turn: the answer is printed to the terminal first, then spoken through TTS, and the spoken response can be interrupted again with the same phrase.
+
 ## Text To Speech
 
-Text-to-speech is optional and disabled by default:
+Text-to-speech is enabled by default:
+
+```env
+ENABLE_TTS=true
+TTS_ENGINE=auto
+TTS_VOICE=
+TTS_CULTURE=zh-CN
+TTS_RATE=0
+TTS_VOLUME=100
+```
+
+On WSL/Windows, `auto` selects Windows SAPI through `powershell.exe`, so responses are played through the Windows default speaker. `TTS_CULTURE=zh-CN` selects an installed Chinese voice, such as `Microsoft Huihui Desktop`. On other environments, `auto` falls back to `pyttsx3`.
+
+Disable speaker output:
 
 ```env
 ENABLE_TTS=false
 ```
 
-Enable it:
+Available engine values:
 
-```env
-ENABLE_TTS=true
-```
+| Value | Description |
+| --- | --- |
+| `auto` | Uses Windows SAPI when available, otherwise `pyttsx3` |
+| `windows_sapi` | Uses Windows built-in speech synthesis through PowerShell |
+| `pyttsx3` | Uses the local `pyttsx3` engine |
 
-The current implementation uses `pyttsx3`.
+To force a specific Windows voice, set `TTS_VOICE` to the installed voice name.
 
 ## Security
 

@@ -40,7 +40,14 @@ def main() -> None:
             force_web_search=settings.force_web_search,
             search_strategy=settings.search_strategy,
         )
-        tts = TextToSpeech(enabled=settings.enable_tts)
+        tts = TextToSpeech(
+            enabled=settings.enable_tts,
+            engine=settings.tts_engine,
+            voice=settings.tts_voice,
+            culture=settings.tts_culture,
+            rate=settings.tts_rate,
+            volume=settings.tts_volume,
+        )
         conversation = Conversation(client=client, tts=tts, system_prompt=settings.system_prompt)
         recorder.ensure_input_device()
         stt = SpeechToText(

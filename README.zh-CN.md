@@ -14,7 +14,7 @@
 - 通过 OpenAI-compatible API 接入 Qwen Cloud / DashScope。
 - 可选启用 Qwen 联网搜索，用于天气、新闻、行情和其他实时信息。
 - 支持静音检测，用户停止说话后自动结束录音。
-- 支持配置模型、唤醒词、联网搜索策略、录音时长和 TTS。
+- 支持配置模型、唤醒词、联网搜索策略、录音时长和扬声器播报。
 - 提供文字模式、手动语音模式和常驻唤醒模式，便于调试和日常使用。
 
 ## 架构
@@ -26,7 +26,7 @@
   -> faster-whisper 转写
   -> Qwen-compatible LLM client
   -> 文本回答
-  -> 可选语音朗读
+  -> 语音播报
 ```
 
 核心模块：
@@ -111,6 +111,8 @@ python -m src.wake_main
 ```
 
 说出 `Monster` 后，助手会回应“我在，请说。”。随后正常说出问题即可。录音会在检测到持续静音后自动结束，然后将转写后的内容发送给 Qwen。
+
+助手播报期间，可以说 `停一下 Monster` 打断当前回答并继续追问。
 
 手动语音模式：
 
@@ -197,21 +199,57 @@ STT_COMPUTE_TYPE=int8
 - 问题较长时，可以提高 `MAX_RECORD_SECONDS`。
 - 需要更高转写准确率时，可以把 `STT_MODEL` 换成更大的 Whisper 模型，但会占用更多 CPU 和内存。
 
+## 打断播报
+
+语音播报期间可以使用专门的短语打断当前回答：
+
+```env
+ENABLE_INTERRUPTION=true
+INTERRUPT_PHRASE=停一下 Monster
+INTERRUPT_LANGUAGE=zh
+INTERRUPT_MAX_SECONDS=3
+INTERRUPT_SILENCE_SECONDS=1
+INTERRUPT_RMS_THRESHOLD=500
+INTERRUPT_TTS_SETTLE_SECONDS=1.0
+INTERRUPT_PROMPT_RECORD_DELAY_SECONDS=0.8
+```
+
+打断监听只会在助手正在播报时启用。检测到打断词后，程序会停止当前 TTS 播报，提示“请说”，并开始录制新的问题。
+
+`INTERRUPT_TTS_SETTLE_SECONDS` 用于在打断回答后等待扬声器尾音消失。`INTERRUPT_PROMPT_RECORD_DELAY_SECONDS` 用于在“请说”提示音结束后稍等再开始录音，避免把助手自己的尾音录进下一轮问题。
+
+打断后的追问会使用和第一轮相同的回答流程：先在命令行打印回答，再通过 TTS 播报，并且新的播报仍然可以继续用同一个短语打断。
+
 ## 语音朗读
 
-TTS 默认关闭：
+TTS 默认开启：
+
+```env
+ENABLE_TTS=true
+TTS_ENGINE=auto
+TTS_VOICE=
+TTS_CULTURE=zh-CN
+TTS_RATE=0
+TTS_VOLUME=100
+```
+
+在 WSL/Windows 环境中，`auto` 会通过 `powershell.exe` 调用 Windows SAPI，回答会从 Windows 默认扬声器播出。`TTS_CULTURE=zh-CN` 会优先选择已安装的中文语音，例如 `Microsoft Huihui Desktop`。在其他环境中，`auto` 会回退到 `pyttsx3`。
+
+关闭语音播报：
 
 ```env
 ENABLE_TTS=false
 ```
 
-开启语音朗读：
+可用引擎：
 
-```env
-ENABLE_TTS=true
-```
+| 值 | 说明 |
+| --- | --- |
+| `auto` | 优先使用 Windows SAPI，否则使用 `pyttsx3` |
+| `windows_sapi` | 通过 PowerShell 调用 Windows 内置语音合成 |
+| `pyttsx3` | 使用本地 `pyttsx3` 引擎 |
 
-当前实现使用 `pyttsx3`。
+如果要强制指定某个 Windows 语音，把 `TTS_VOICE` 设置为已安装的语音名称。
 
 ## 安全说明
 

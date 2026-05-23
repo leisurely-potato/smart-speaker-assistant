@@ -42,6 +42,16 @@ def _int_from_env(name: str, default: int) -> int:
         return default
 
 
+def _float_from_env(name: str, default: float) -> float:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    try:
+        return float(value)
+    except ValueError:
+        return default
+
+
 @dataclass(frozen=True)
 class Settings:
     llm_provider: str = "qwen"
@@ -58,7 +68,20 @@ class Settings:
     wake_silence_seconds: int = 1
     wake_rms_threshold: int = 500
     system_prompt: str = "你是一个简洁、可靠的中文语音助手。回答要适合被朗读。"
-    enable_tts: bool = False
+    enable_tts: bool = True
+    tts_engine: str = "auto"
+    tts_voice: str = ""
+    tts_culture: str = "zh-CN"
+    tts_rate: int = 0
+    tts_volume: int = 100
+    enable_interruption: bool = True
+    interrupt_phrase: str = "停一下 Monster"
+    interrupt_language: str = "zh"
+    interrupt_max_seconds: int = 3
+    interrupt_silence_seconds: int = 1
+    interrupt_rms_threshold: int = 500
+    interrupt_tts_settle_seconds: float = 1.0
+    interrupt_prompt_record_delay_seconds: float = 0.8
     language: str = "zh"
     sample_rate: int = 16000
     max_record_seconds: int = 6
@@ -101,7 +124,33 @@ class Settings:
             ),
             wake_rms_threshold=_int_from_env("WAKE_RMS_THRESHOLD", cls.wake_rms_threshold),
             system_prompt=os.getenv("SYSTEM_PROMPT", cls.system_prompt),
-            enable_tts=_bool_from_env("ENABLE_TTS", False),
+            enable_tts=_bool_from_env("ENABLE_TTS", cls.enable_tts),
+            tts_engine=os.getenv("TTS_ENGINE", cls.tts_engine),
+            tts_voice=os.getenv("TTS_VOICE", cls.tts_voice),
+            tts_culture=os.getenv("TTS_CULTURE", cls.tts_culture),
+            tts_rate=_int_from_env("TTS_RATE", cls.tts_rate),
+            tts_volume=_int_from_env("TTS_VOLUME", cls.tts_volume),
+            enable_interruption=_bool_from_env(
+                "ENABLE_INTERRUPTION", cls.enable_interruption
+            ),
+            interrupt_phrase=os.getenv("INTERRUPT_PHRASE", cls.interrupt_phrase),
+            interrupt_language=os.getenv("INTERRUPT_LANGUAGE", cls.interrupt_language),
+            interrupt_max_seconds=_int_from_env(
+                "INTERRUPT_MAX_SECONDS", cls.interrupt_max_seconds
+            ),
+            interrupt_silence_seconds=_int_from_env(
+                "INTERRUPT_SILENCE_SECONDS", cls.interrupt_silence_seconds
+            ),
+            interrupt_rms_threshold=_int_from_env(
+                "INTERRUPT_RMS_THRESHOLD", cls.interrupt_rms_threshold
+            ),
+            interrupt_tts_settle_seconds=_float_from_env(
+                "INTERRUPT_TTS_SETTLE_SECONDS", cls.interrupt_tts_settle_seconds
+            ),
+            interrupt_prompt_record_delay_seconds=_float_from_env(
+                "INTERRUPT_PROMPT_RECORD_DELAY_SECONDS",
+                cls.interrupt_prompt_record_delay_seconds,
+            ),
             language=os.getenv("LANGUAGE", cls.language),
             sample_rate=_int_from_env("SAMPLE_RATE", cls.sample_rate),
             max_record_seconds=_int_from_env("MAX_RECORD_SECONDS", cls.max_record_seconds),
